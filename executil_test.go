@@ -1,7 +1,6 @@
 package executil
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"testing"
@@ -67,6 +66,34 @@ func TestParseCmd(t *testing.T) {
 	})
 }
 
+func TestCloneCmd(t *testing.T) {
+	cmd, err := ParseCmd(os.Args[0] + " -test.run=Test_SimpleSubprocess -- Howdy")
+
+	if err != nil {
+		t.Fatalf("ParseCmd() returned err: +%v", err)
+	}
+
+	cmd.Env = append(cmd.Env, "GO_RUNNING_SUBPROCESS=1")
+
+	clonedCmd := CloneCmd(cmd)
+
+	if cmd == clonedCmd {
+		t.Fatalf("expected two different commands, but got the same one")
+	}
+
+	out, err := clonedCmd.Output()
+	if err != nil {
+		t.Fatalf("got err running cloned command: %+v", err)
+	}
+
+	want := "Howdy there"
+	got := string(out)
+
+	if want != got {
+		t.Errorf("cmd output = %q; want %q", got, want)
+	}
+}
+
 // -----------------------------------------------------------------------------
 // Sample programs to use for cmd testing
 
@@ -75,8 +102,7 @@ func Test_SimpleSubprocess(t *testing.T) {
 		return
 	}
 
-	var greeting string
-	flag.StringVar(&greeting, "greeting", "Hello", "greeting")
-
+	greeting := os.Args[len(os.Args)-1]
 	fmt.Printf("%s there", greeting)
+	os.Exit(0)
 }
